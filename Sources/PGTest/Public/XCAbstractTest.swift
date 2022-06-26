@@ -15,7 +15,7 @@
 /// An abstract base class for testing. `XCTestCase` and `XCTestSuite` extend
 /// `XCTest` to provide for creating, managing, and executing tests. Most
 /// developers will not need to subclass `XCTest` directly.
-open class XCTest {
+open class XCTest: NSObject {
     /// Test's name. Must be overridden by subclasses.
     open var name: String {
         fatalError("Must be overridden by subclasses.")
@@ -77,5 +77,5 @@ open class XCTest {
     open func tearDown() async throws {}
     // FIXME: This initializer is required due to a Swift compiler bug on Linux.
     //        It should be removed once the bug is fixed.
-    public init() {}
+    public override init() {}
 }
