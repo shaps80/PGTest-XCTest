@@ -31,7 +31,7 @@ internal var XCTCurrentTestCase: XCTestCase?
 /// run by the framework. This class is normally subclassed and extended with
 /// methods containing the tests to run.
 /// - seealso: `XCTMain`
-@objcMembers open class XCTestCase: XCTest {
+open class XCTestCase: XCTest {
     private let testClosure: XCTestCaseClosure
 
     private var skip: XCTSkip?

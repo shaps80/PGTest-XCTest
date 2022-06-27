@@ -15,7 +15,7 @@
 /// An abstract base class for testing. `XCTestCase` and `XCTestSuite` extend
 /// `XCTest` to provide for creating, managing, and executing tests. Most
 /// developers will not need to subclass `XCTest` directly.
-open class XCTest: NSObject {
+@objcMembers open class XCTest: NSObject {
     /// Test's name. Must be overridden by subclasses.
     open var name: String {
         fatalError("Must be overridden by subclasses.")

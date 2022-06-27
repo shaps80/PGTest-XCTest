@@ -1,15 +1,16 @@
 import Foundation
 
-public typealias DescriptionMethod = @convention(c) (XCTestCase) -> () -> Void
+public typealias SwiftMethod = (XCTestCase) -> () -> Void
+public typealias ObjcMethod = @convention(c) (XCTestCase) -> () -> Void
 
-public func discoverTests() -> [(String, DescriptionMethod)] {
+public func discoverTests() -> [(String, SwiftMethod)] {
     let expectedClassCount = objc_getClassList(nil, 0)
     let allClasses = UnsafeMutablePointer<AnyClass?>.allocate(capacity: Int(expectedClassCount))
 
     let autoreleasingAllClasses = AutoreleasingUnsafeMutablePointer<AnyClass>(allClasses)
     let actualClassCount: Int32 = objc_getClassList(autoreleasingAllClasses, expectedClassCount)
 
-    var tests: [(String, DescriptionMethod)] = []
+    var tests: [(String, SwiftMethod)] = []
 
     for i in 0 ..< actualClassCount {
         if let classType: AnyClass = allClasses[Int(i)],
@@ -23,7 +24,7 @@ public func discoverTests() -> [(String, DescriptionMethod)] {
                     let selector = method_getName(methodList[i])
                     if selector.description.hasPrefix("test"), let method = class_getInstanceMethod(testCase, selector) {
                         let imp = method_getImplementation(method)
-                        let closure = unsafeBitCast(imp, to: DescriptionMethod.self)
+                        let closure = unsafeBitCast(imp, to: ObjcMethod.self)
                         tests.append(("\(selector)", closure))
                     }
                 }
