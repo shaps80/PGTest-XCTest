@@ -1,10 +1,27 @@
 import SwiftUI
 
 public struct TestResultsView: View {
+    enum OutputStyle: String, Identifiable, CaseIterable {
+        var id: Self { self }
+        case compact
+        case verbose
+
+        var systemImage: String {
+            switch self {
+            case .compact:
+                return "rectangle.arrowtriangle.2.inward"
+            case .verbose:
+                return "rectangle.arrowtriangle.2.outward"
+            }
+        }
+    }
+
     @StateObject private var observer: PlaygroundObserver = .init()
     @State private var console: PlaygroundConsoleObserver = .init()
+    @State private var xcode: XcodeObserver = .init()
 
     @AppStorage("enableConsole") private var enableConsole: Bool = false
+    @AppStorage("outputStyle") private var outputStyle: OutputStyle = .compact
     @State private var showCode: Bool = false
 
     public init() { }
@@ -20,17 +37,27 @@ public struct TestResultsView: View {
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
                         Menu {
-                            Toggle(isOn: $enableConsole) { 
-                                Label("Enable Console", systemImage: "terminal")
+                            Button {
+                                showCode = true
+                            } label: {
+                                Label("Generate All Tests", systemImage: "curlybraces.square")
                             }
 
                             Divider()
 
-                            Button {
-                                showCode = true
-                            } label: {
-                                Label("Generate All Tests", systemImage: "ellipsis.curlybraces")
+                            Toggle(isOn: $enableConsole) { 
+                                Label("Enable Console", systemImage: "terminal")
                             }
+
+                            Picker(selection: $outputStyle) {
+                                ForEach(OutputStyle.allCases) { style in
+                                    Label(style.rawValue.capitalized, systemImage: style.systemImage)
+                                        .tag(style)
+                                }
+                            } label: {
+                                Label("Output Style", systemImage: "terminal.fill")
+                            }
+                            .pickerStyle(.menu)
                         } label: {
                             Label("Options", systemImage: "ellipsis.circle")
                         }
@@ -42,14 +69,7 @@ public struct TestResultsView: View {
                     
                     ToolbarItem(placement: .primaryAction) {
                         Button {
-                            if enableConsole {
-                                XCTestObservationCenter.shared
-                                    .addTestObserver(console)
-                            } else {
-                                XCTestObservationCenter.shared
-                                    .removeTestObserver(console)
-                            }
-
+                            updateObservers(isEnabled: enableConsole, outputStyle: outputStyle)
                             observer.run()
                         } label: {
                             Label("Run", systemImage: observer.isRunning ? "stop.circle" : "play.circle")
@@ -68,6 +88,24 @@ public struct TestResultsView: View {
                 }
         }
         .tint(.brown)
+    }
+
+    private func updateObservers(isEnabled: Bool, outputStyle: OutputStyle) {
+        XCTestObservationCenter.shared
+            .removeTestObserver(xcode)
+        XCTestObservationCenter.shared
+            .removeTestObserver(console)
+        
+        if isEnabled {
+            switch outputStyle {
+            case .compact:
+                XCTestObservationCenter.shared
+                    .addTestObserver(console)
+            case .verbose:
+                XCTestObservationCenter.shared
+                    .addTestObserver(xcode)
+            }
+        }
     }
     
     @ViewBuilder
