@@ -46,6 +46,7 @@ struct CopyCodeView: View {
                     .ignoresSafeArea()
                 }
             }
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 Button {
                     dismiss()
@@ -55,5 +56,6 @@ struct CopyCodeView: View {
             }
         }
         .backport.presentationDetents([.medium, .large], selection: .constant(.medium))
+        .navigationViewStyle(.stack)
     }
 }
