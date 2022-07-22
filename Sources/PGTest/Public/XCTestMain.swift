@@ -121,6 +121,7 @@ public func XCTMain(
     case .run(selectedTestNames: _):
         // Add a test observer that prints test progress to stdout.
         let observationCenter = XCTestObservationCenter.shared
+
         for observer in observers {
             observationCenter.addTestObserver(observer)
         }
