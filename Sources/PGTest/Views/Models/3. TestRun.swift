@@ -42,7 +42,7 @@ extension TestRun.State {
             Image(systemName: "arrow.turn.down.right")
                 .foregroundStyle(.tertiary)
         case .running:
-            Image(systemName: "circle")
+            Image(systemName: "circle.dotted")
                 .opacity(0)
         case .failed:
             Image(systemName: "xmark.circle")

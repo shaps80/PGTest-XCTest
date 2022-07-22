@@ -15,9 +15,15 @@ internal struct TestSuiteListView: View {
             if observer.suites.isEmpty {
                 Text("No tests found.")
                     .font(.footnote)
-                    .foregroundColor(.secondary)
+                    .foregroundStyle(.tertiary)
             }
         }
         .background(Color(uiColor: .systemGroupedBackground))
+    }
+}
+
+struct TestSuiteListView_Previews: PreviewProvider {
+    static var previews: some View {
+        TestResultsView()
     }
 }

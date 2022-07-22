@@ -9,3 +9,9 @@ internal struct TestCaseListView: View {
         }
     }
 }
+
+struct TestCaseListView_Previews: PreviewProvider {
+    static var previews: some View {
+        TestResultsView()
+    }
+}

@@ -29,13 +29,28 @@ public struct TestResultsView: View {
     public var body: some View {
         NavigationView {
             TestSuiteListView()
-                .environmentObject(observer)
             #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
                 .navigationViewStyle(.stack)
             #endif
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {
+                        switch observer.state {
+                        case .running:
+                            ProgressView()
+                        default:
+                            Button {
+                                updateObservers(isEnabled: enableConsole, outputStyle: outputStyle)
+                                observer.run()
+                            } label: {
+                                Label("Run", systemImage: "play.circle")
+                                    .foregroundStyle(.tint)
+                            }
+                            .keyboardShortcut("U", modifiers: [.command, .shift])
+                        }
+                    }
+
+                    ToolbarItem(placement: .primaryAction) {
                         Menu {
                             Button {
                                 showCode = true
@@ -62,22 +77,6 @@ public struct TestResultsView: View {
                             Label("Options", systemImage: "ellipsis.circle")
                         }
                     }
-                    
-                    ToolbarItem(placement: .principal) {
-                        runtime
-                    }
-                    
-                    ToolbarItem(placement: .primaryAction) {
-                        Button {
-                            updateObservers(isEnabled: enableConsole, outputStyle: outputStyle)
-                            observer.run()
-                        } label: {
-                            Label("Run", systemImage: observer.isRunning ? "stop.circle" : "play.circle")
-                                .foregroundColor(observer.isRunning ? .orange : nil)
-                        }
-                        .disabled(observer.isRunning)
-                        .keyboardShortcut("U", modifiers: [.command, .shift])
-                    }
                 }
                 .sheet(isPresented: $showCode) {
                     CopyCodeView(
@@ -86,8 +85,61 @@ public struct TestResultsView: View {
                         code: observer.code
                     )
                 }
+                .safeAreaInset(edge: .bottom) {
+                    HStack {
+                        if observer.numberOfTests == 0 {
+                            Text("No tests found")
+                        } else {
+                            VStack(alignment: .leading) {
+                                if observer.state.isRunning {
+                                    Text("\(observer.passedCount + observer.failureCount) of \(observer.numberOfTests)")
+                                        .font(.headline)
+                                } else {
+                                    Text("\(observer.numberOfTests) tests")
+                                        .font(.headline)
+                                }
+
+                                Group {
+                                    switch observer.state {
+                                    case .undetermined, .skipped:
+                                        Text("Tap play to run tests")
+                                    case .failed:
+                                        Text("\(observer.formatTimeInterval(observer.runtime))s (\(observer.failureCount) failed)")
+                                    case .passed:
+                                        Text("\(observer.formatTimeInterval(observer.runtime))s")
+                                    case .running:
+                                        Text("Running...")
+                                    }
+                                }
+                                .font(.footnote)
+                                .foregroundColor(.secondary)
+                            }
+                        }
+
+                        Spacer(minLength: 0)
+
+                        if observer.state.isRunning {
+                            ProgressView()
+                        } else {
+                            observer.state.systemImage
+                                .imageScale(.large)
+                        }
+                    }
+                    .padding()
+                    .background(.bar)
+                    .cornerRadius(13)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 13, style: .continuous)
+                            .stroke(Color(uiColor: .quaternarySystemFill), lineWidth: 1)
+                    }
+                    .shadow(color: .black.opacity(0.05), radius: 10)
+                    .padding(.horizontal, 30)
+                    .padding(.vertical)
+                }
+                .navigationTitle("Test Results")
         }
-        .tint(.brown)
+        .accentColor(.brown)
+        .environmentObject(observer)
     }
 
     private func updateObservers(isEnabled: Bool, outputStyle: OutputStyle) {
@@ -95,7 +147,7 @@ public struct TestResultsView: View {
             .removeTestObserver(xcode)
         XCTestObservationCenter.shared
             .removeTestObserver(console)
-        
+
         if isEnabled {
             switch outputStyle {
             case .compact:
@@ -107,15 +159,10 @@ public struct TestResultsView: View {
             }
         }
     }
-    
-    @ViewBuilder
-    private var runtime: some View {
-        if observer.runtime == 0 {
-            Text("Tests")
-        } else {
-            Text("\(observer.formatTimeInterval(observer.runtime))s")
-                .font(.footnote)
-                .foregroundColor(.secondary)
-        }
+}
+
+struct TestResultsView_Previews: PreviewProvider {
+    static var previews: some View {
+        TestResultsView()
     }
 }

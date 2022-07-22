@@ -13,13 +13,21 @@ internal struct TestCaseView: View {
                     if testCase.isEnabled {
                         Button {
                             observer.run()
-    //                        print("Run \(testCase.name) only")
                         } label: {
-                            Image(systemName: observer.state(for: testCase) == .running ? "stop.circle" : "play.circle")
-                                .foregroundStyle(testCase.isEnabled ? .brown : Color(uiColor: .tertiaryLabel))
+                            Image(systemName: observer.state(for: testCase).isRunning ? "stop.circle" : "play.circle")
+//                                .foregroundColor(observer.state.isRunning ? Color(uiColor: .secondaryLabel) : nil)
+                                .foregroundColor(testCase.isEnabled ? .accentColor : Color(uiColor: .tertiaryLabel))
                         }
                         .buttonStyle(.plain)
-                        .disabled(!testCase.isEnabled)
+                        .disabled(!testCase.isEnabled || observer.state(for: testCase).isRunning)
+                        .opacity(observer.state(for: testCase).isRunning ? 0 : 1)
+                        .overlay  {
+                            if observer.state(for: testCase).isRunning {
+                                ProgressView()
+                                    .controlSize(.mini)
+                            }
+                        }
+                        .disabled(observer.state.isRunning)
                     } else {
                         Button {
                             showInfo = true
@@ -55,5 +63,11 @@ internal struct TestCaseView: View {
         .listRowInsets(.init(top: 0, leading: 0, bottom: 0, trailing: 12))
         .padding(.vertical)
         .overlay(alignment: .top) { Divider() }
+    }
+}
+
+struct TestCaseView_Previews: PreviewProvider {
+    static var previews: some View {
+        TestResultsView()
     }
 }
