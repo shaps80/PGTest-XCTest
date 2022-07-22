@@ -17,13 +17,14 @@ import Foundation
          Test Results screen.
 
  */
-public typealias AllTests<T> = [(String, (T) -> () -> Void)]
+public typealias AllTests<T: XCTestCase> = [(String, (T) -> () -> Void)]
 
-public protocol AllTestsProvider {
+public protocol AllTestsProvider: XCTestCase {
     static var allTests: AllTests<Self> { get }
 }
-extension XCTestCase: AllTestsProvider { }
 
 public extension AllTestsProvider {
     static var allTests: AllTests<Self> { [] }
 }
+
+extension XCTestCase: AllTestsProvider { }

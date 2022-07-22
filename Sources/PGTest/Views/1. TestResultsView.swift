@@ -15,6 +15,7 @@ public struct TestResultsView: View {
                 .environmentObject(observer)
             #if os(iOS)
                 .navigationBarTitleDisplayMode(.inline)
+                .navigationViewStyle(.stack)
             #endif
                 .toolbar {
                     ToolbarItem(placement: .cancellationAction) {

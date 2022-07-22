@@ -27,6 +27,7 @@ public class PlaygroundObserver: XCTestObservation, ObservableObject {
         for testCase in testCases {
             explicit[String(describing: testCase)] = testCase.allTests.map { $0.0 }
         }
+        #warning("Uncomment when ready!")
 
         // use obj-c runtime to discover implicitly defined suites, disabling those that are not also explicitly define
         suites = implicitSuites(explicit: explicit).sorted()

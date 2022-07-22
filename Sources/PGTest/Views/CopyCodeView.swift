@@ -54,5 +54,6 @@ struct CopyCodeView: View {
                 }
             }
         }
+        .backport.presentationDetents([.medium, .large], selection: .constant(.medium))
     }
 }
