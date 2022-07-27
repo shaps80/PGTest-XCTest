@@ -1,5 +1,9 @@
 import Foundation
 
+public extension XCTestObservation where Self == XcodeObserver {
+    static var verbose: XcodeObserver { XcodeObserver() }
+}
+
 /// Mirrors the Apple Xcode output exactly.
 public class XcodeObserver: XCTestObservation {
     public func testBundleWillStart(_ testBundle: Bundle) {}

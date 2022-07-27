@@ -16,15 +16,18 @@ public struct TestResultsView: View {
         }
     }
 
-    @StateObject private var observer: PlaygroundObserver = .init()
+    @StateObject private var observer: PlaygroundObserver
     @State private var console: PlaygroundConsoleObserver = .init()
     @State private var xcode: XcodeObserver = .init()
 
+    @AppStorage("randomizeExecutionOrder") private var randomizeExecutionOrder: Bool = true
     @AppStorage("enableConsole") private var enableConsole: Bool = false
     @AppStorage("outputStyle") private var outputStyle: OutputStyle = .compact
     @State private var showCode: Bool = false
 
-    public init() { }
+    public init(@TestCaseBuilder testCases: @escaping () -> [XCTestCase.Type]) {
+        _observer = .init(wrappedValue: .init(testCases: testCases))
+    }
     
     public var body: some View {
         NavigationView {
@@ -47,15 +50,14 @@ public struct TestResultsView: View {
                                     .foregroundStyle(.tint)
                             }
                             .keyboardShortcut("U", modifiers: [.command, .shift])
+                            .disabled(observer.disabledTestCount == observer.testCount)
                         }
                     }
 
                     ToolbarItem(placement: .primaryAction) {
                         Menu {
-                            Button {
-                                showCode = true
-                            } label: {
-                                Label("Generate All Tests", systemImage: "curlybraces.square")
+                            Toggle(isOn: $randomizeExecutionOrder) {
+                                Label("Random Order", systemImage: "shuffle")
                             }
 
                             Divider()
@@ -73,6 +75,14 @@ public struct TestResultsView: View {
                                 Label("Output Style", systemImage: "terminal.fill")
                             }
                             .pickerStyle(.menu)
+
+                            Divider()
+
+                            Button {
+                                showCode = true
+                            } label: {
+                                Label("Generate All Tests", systemImage: "curlybraces.square")
+                            }
                         } label: {
                             Label("Options", systemImage: "ellipsis.circle")
                         }
@@ -81,60 +91,12 @@ public struct TestResultsView: View {
                 .sheet(isPresented: $showCode) {
                     CopyCodeView(
                         title: "Generate Code",
-                        message: "The following code represents the required 'allTests' properties for all discovered suites.",
+                        message: "Copy the following code to a file in your project to enable these tests.",
                         code: observer.code
                     )
                 }
                 .safeAreaInset(edge: .bottom) {
-                    HStack {
-                        if observer.numberOfTests == 0 {
-                            Text("No tests found")
-                        } else {
-                            VStack(alignment: .leading) {
-                                if observer.state.isRunning {
-                                    Text("\(observer.passedCount + observer.failureCount) of \(observer.numberOfTests)")
-                                        .font(.headline)
-                                } else {
-                                    Text("\(observer.numberOfTests) tests")
-                                        .font(.headline)
-                                }
-
-                                Group {
-                                    switch observer.state {
-                                    case .undetermined, .skipped:
-                                        Text("Tap play to run tests")
-                                    case .failed:
-                                        Text("\(observer.formatTimeInterval(observer.runtime))s (\(observer.failureCount) failed)")
-                                    case .passed:
-                                        Text("\(observer.formatTimeInterval(observer.runtime))s")
-                                    case .running:
-                                        Text("Running...")
-                                    }
-                                }
-                                .font(.footnote)
-                                .foregroundColor(.secondary)
-                            }
-                        }
-
-                        Spacer(minLength: 0)
-
-                        if observer.state.isRunning {
-                            ProgressView()
-                        } else {
-                            observer.state.systemImage
-                                .imageScale(.large)
-                        }
-                    }
-                    .padding()
-                    .background(.bar)
-                    .cornerRadius(13)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: 13, style: .continuous)
-                            .stroke(Color(uiColor: .quaternarySystemFill), lineWidth: 1)
-                    }
-                    .shadow(color: .black.opacity(0.05), radius: 10)
-                    .padding(.horizontal, 30)
-                    .padding(.vertical)
+                    FeedbackOverlay()
                 }
                 .navigationTitle("Test Results")
         }
@@ -158,11 +120,5 @@ public struct TestResultsView: View {
                     .addTestObserver(xcode)
             }
         }
-    }
-}
-
-struct TestResultsView_Previews: PreviewProvider {
-    static var previews: some View {
-        TestResultsView()
     }
 }

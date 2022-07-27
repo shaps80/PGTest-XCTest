@@ -66,9 +66,3 @@ struct TestSuiteView: View {
         .buttonStyle(.plain)
     }
 }
-
-struct TestSuiteView_Previews: PreviewProvider {
-    static var previews: some View {
-        TestResultsView()
-    }
-}

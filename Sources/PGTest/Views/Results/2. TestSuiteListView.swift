@@ -21,9 +21,3 @@ internal struct TestSuiteListView: View {
         .background(Color(uiColor: .systemGroupedBackground))
     }
 }
-
-struct TestSuiteListView_Previews: PreviewProvider {
-    static var previews: some View {
-        TestResultsView()
-    }
-}

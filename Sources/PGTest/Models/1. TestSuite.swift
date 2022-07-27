@@ -3,10 +3,23 @@ import SwiftUI
 internal struct TestSuite: Identifiable, Hashable {
     var id: String { name }
     var name: String
-    var keyedTestCases: [TestCase.ID: TestCase] = [:]
-    var testCases: [TestCase] = []
+
+    private var keyedTestCases: [TestCase.ID: TestCase] = [:]
+    private(set) var testCases: [TestCase] = []
+
     var isEnabled: Bool {
         testCases.contains { $0.isEnabled }
+    }
+
+    init(name: String) {
+        self.name = name
+    }
+
+    mutating func append(_ testCase: TestCase) {
+        if keyedTestCases[testCase.id] == nil {
+            keyedTestCases[testCase.id] = testCase
+            testCases.append(testCase)
+        }
     }
 }
 

@@ -1,6 +1,6 @@
 import SwiftUI
 
-public class PlaygroundObserver: XCTestObservation, ObservableObject {
+internal class PlaygroundObserver: XCTestObservation, ObservableObject {
     @Published private(set) var testRuns: [TestCase.ID: TestRun] = [:]
     @Published private(set) var runtime: TimeInterval = 0
     @Published private(set) var suites: [TestSuite] = []
@@ -9,10 +9,21 @@ public class PlaygroundObserver: XCTestObservation, ObservableObject {
     @Published private(set) var passedCount: Int = 0
     @Published private(set) var state: TestRun.State = .undetermined
 
+    @AppStorage("randomizeExecutionOrder") private var randomizeExecutionOrder: Bool = true
+
     private var startDate: Date = .now
 
-    var numberOfTests: Int {
-        suites.flatMap({ $0.testCases }).count
+    var testCount: Int {
+        suites
+            .flatMap { $0.testCases }
+            .count
+    }
+
+    var disabledTestCount: Int {
+        suites
+            .flatMap { $0.testCases }
+            .filter { !$0.isEnabled }
+            .count
     }
 
     var code: String {
@@ -25,14 +36,15 @@ public class PlaygroundObserver: XCTestObservation, ObservableObject {
         return lines.joined(separator: "\n\n")
     }
 
-    public init() {
-        #warning("Ideally this could be done automatically here")
+    var explicitTestCases: [XCTestCase.Type]
+
+    init(@TestCaseBuilder testCases explicitTestCases: () -> [XCTestCase.Type]) {
+        self.explicitTestCases = explicitTestCases()
 
         var explicit: [String: [String]] = [:]
-        for testCase in testCases {
+        for testCase in self.explicitTestCases {
             explicit[String(describing: testCase)] = testCase.allTests.map { $0.0 }
         }
-        #warning("Uncomment when ready!")
 
         // use obj-c runtime to discover implicitly defined suites, disabling those that are not also explicitly define
         suites = implicitSuites(explicit: explicit).sorted()
@@ -44,7 +56,7 @@ public class PlaygroundObserver: XCTestObservation, ObservableObject {
             testRuns = [:]
         }
         
-        #warning("Remove testRuns where there's no longer a testCase")
+        #warning("Remove testRuns from cache, where there's no longer a matching testCase found (implicitly)")
     }
 
     func state(for testCase: TestCase) -> TestRun.State {
@@ -55,21 +67,26 @@ public class PlaygroundObserver: XCTestObservation, ObservableObject {
 
     public func run(selectedTests: [String] = []) {
         guard state != .running else { return }
-        DispatchQueue.global(qos: .userInitiated).async {
-            RunTests([
-                PGTest.testCase(GroceryTests.allTests.shuffled()),
-                PGTest.testCase(PeopleTests.allTests.shuffled()),
-                PGTest.testCase(SimpleTests.allTests.shuffled()),
-            ].shuffled(),
-    //            testCases.map { PGTest.testCase($0.allTests.shuffled()) }.shuffled(),
+        DispatchQueue.global(qos: .userInitiated).async { [unowned self] in
+            let tests = self.explicitTestCases
+                .map {
+                    PGTest.testCase(
+                        self.randomizeExecutionOrder
+                        ? $0.allTests.shuffled()
+                        : $0.allTests
+                    )
+                }
+
+            RunTests(
+                randomizeExecutionOrder ? tests.shuffled() : tests,
                 arguments: selectedTests,
                 observers: [self]
             )
         }
     }
 
-    public func testBundleWillStart(_ testBundle: Bundle) {
-        DispatchQueue.main.async {
+    func testBundleWillStart(_ testBundle: Bundle) {
+        DispatchQueue.main.async { [unowned self] in
             withAnimation(.reveal) {
                 self.testRuns = [:]
                 self.startDate = .now
@@ -82,8 +99,8 @@ public class PlaygroundObserver: XCTestObservation, ObservableObject {
         }
     }
 
-    public func testSuiteWillStart(_ testSuite: XCTestSuite) {
-        DispatchQueue.main.async {
+    func testSuiteWillStart(_ testSuite: XCTestSuite) {
+        DispatchQueue.main.async { [unowned self] in
             withAnimation(.reveal) {
                 testSuite.tests
                     .forEach {
@@ -96,13 +113,8 @@ public class PlaygroundObserver: XCTestObservation, ObservableObject {
         }
     }
 
-    public func testCaseWillStart(_ testCase: XCTestCase) {
-
-    }
-
-    @MainActor
-    public func testCase(_ testCase: XCTestCase, didFailWithDescription description: String, inFile filePath: String?, atLine lineNumber: Int) {
-        DispatchQueue.main.async {
+    func testCase(_ testCase: XCTestCase, didFailWithDescription description: String, inFile filePath: String?, atLine lineNumber: Int) {
+        DispatchQueue.main.async { [unowned self] in
             withAnimation(.reveal) {
                 self.testRuns[testCase.name]?.state = .failed(.init(errorDescription: description))
             }
@@ -110,8 +122,8 @@ public class PlaygroundObserver: XCTestObservation, ObservableObject {
         }
     }
 
-    public func testCaseDidFinish(_ testCase: XCTestCase) {
-        DispatchQueue.main.async {
+    func testCaseDidFinish(_ testCase: XCTestCase) {
+        DispatchQueue.main.async { [unowned self] in
             let testRun = testCase.testRun!
             guard testRun.hasSucceeded else { return }
             withAnimation(.reveal) {
@@ -121,8 +133,8 @@ public class PlaygroundObserver: XCTestObservation, ObservableObject {
         }
     }
 
-    public func testBundleDidFinish(_ testBundle: Bundle) {
-        DispatchQueue.main.async {
+    func testBundleDidFinish(_ testBundle: Bundle) {
+        DispatchQueue.main.async { [unowned self] in
             withAnimation(.reveal) {
                 self.runtime = Date.now.timeIntervalSince(self.startDate)
 
@@ -136,7 +148,6 @@ public class PlaygroundObserver: XCTestObservation, ObservableObject {
                     }
                 }
 
-                print(self.runtime)
                 if self.runtime < 0.4 {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                         complete()
@@ -155,7 +166,6 @@ public class PlaygroundObserver: XCTestObservation, ObservableObject {
         }
     }
 
-    @MainActor
     func formatTimeInterval(_ timeInterval: TimeInterval) -> String {
         return String(round(timeInterval * 1000.0) / 1000.0)
     }
@@ -188,12 +198,14 @@ private extension PlaygroundObserver {
             var suite = TestSuite(
                 name: String(describing: testCase)
             )
-            let className = String(describing: testCase)
 
+            let className = String(describing: testCase)
             var methodCount: UInt32 = 0
+
             if let methodList = class_copyMethodList(testCase, &methodCount) {
                 for i in 0..<Int(methodCount) {
                     let selector = method_getName(methodList[i])
+
                     if selector.description.hasPrefix("test") {
                         let name = String("\(selector)")
                         let id = "\(className).\(name)"
@@ -202,14 +214,10 @@ private extension PlaygroundObserver {
                         let test = TestCase(
                             id: id,
                             name: name,
-                            isEnabled: true// isEnabled
+                            isEnabled: isEnabled
                         )
-                        #warning("Uncomment when ready")
 
-                        if suite.keyedTestCases[id] == nil {
-                            suite.keyedTestCases[id] = test
-                            suite.testCases.append(test)
-                        }
+                        suite.append(test)
                     }
                 }
             }

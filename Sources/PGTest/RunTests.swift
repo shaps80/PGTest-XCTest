@@ -1,17 +1,9 @@
 @_exported import Foundation
 
-public func RunTests(_ testCases: [XCTestCaseEntry]) {
-    RunTests(testCases, arguments: CommandLine.arguments)
-}
-
-public func RunTests(_ testCases: [XCTestCaseEntry], arguments: [String]) {
-    RunTests(testCases, arguments: arguments, observers: [PrintObserver()])
-}
-
 public func RunTests(
     _ testCases: [XCTestCaseEntry],
-    arguments: [String],
-    observers: [XCTestObservation]
+    arguments: [String] = [],
+    observers: [XCTestObservation] = [.verbose]
 ) {
     let testBundle = Bundle.main
 

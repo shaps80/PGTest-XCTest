@@ -1,5 +1,9 @@
 import SwiftUI
 
+public extension XCTestObservation where Self == PlaygroundConsoleObserver {
+    static var compact: PlaygroundConsoleObserver { PlaygroundConsoleObserver() }
+}
+
 extension XCTestCase {
     var methodName: String {
         name

@@ -65,9 +65,3 @@ internal struct TestCaseView: View {
         .overlay(alignment: .top) { Divider() }
     }
 }
-
-struct TestCaseView_Previews: PreviewProvider {
-    static var previews: some View {
-        TestResultsView()
-    }
-}
